@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galería de Adjuntos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.1/css/lightgallery-bundle.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #000;
+      color: #fff;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      width: 200px;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.8em;
+    }
+    header h3 {
+      font-weight: normal;
+      font-size: 1em;
+      color: #ccc;
+    }
+    #gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    #gallery a img, #gallery a video, #gallery a object {
+      width: 200px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    @media (max-width: 600px) {
+      #gallery a img, #gallery a video, #gallery a object {
+        width: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://nuevaweb.isagis.com/images/Logo.png" alt="Logo IsaGIS">
+    <h1>Aplicación de Attachments de IsaGIS Technologies</h1>
+    <h3 id="subtitulo"></h3>
+  </header>
+
+  <div id="gallery"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.1/lightgallery.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.1/plugins/zoom/lg-zoom.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.1/plugins/video/lg-video.umd.js"></script>
+
+  <script>
+    async function cargarAdjuntos() {
+      const params = new URLSearchParams(window.location.search);
+      const globalid = params.get("globalid");
+      if (!globalid) {
+        document.getElementById("gallery").innerHTML = "<p style='color:red;'>Falta el parámetro <code>globalid</code> en la URL.</p>";
+        return;
+      }
+
+      const apiUrl = `https://api.github.com/repos/erasocesar/galeria_isagis/contents/${globalid}`;
+      const rawBase = `https://raw.githubusercontent.com/erasocesar/galeria_isagis/main/${globalid}`;
+      document.getElementById("subtitulo").innerText = `Carpeta: ${globalid}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const archivos = await response.json();
+
+        const galeria = document.getElementById("gallery");
+        archivos.forEach(archivo => {
+          const nombre = archivo.name.toLowerCase();
+          const url = `${rawBase}/${archivo.name}`;
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("data-lg-size", "1600-1067");
+
+          if (nombre.match(/\.(jpg|jpeg|png|gif)$/)) {
+            link.innerHTML = `<img src="${url}" alt="${archivo.name}">`;
+          } else if (nombre.match(/\.(mp4|webm)$/)) {
+            link.setAttribute("data-lg-video", JSON.stringify({source: [{src: url, type: 'video/mp4'}]}));
+            link.innerHTML = `<video src="${url}" muted></video>`;
+          } else if (nombre.match(/\.(pdf)$/)) {
+            link.innerHTML = `<object data="${url}" type="application/pdf" width="100%" height="200px"></object>`;
+          } else {
+            return;
+          }
+
+          galeria.appendChild(link);
+        });
+
+        lightGallery(galeria, {
+          plugins: [lgZoom, lgThumbnail, lgVideo],
+          speed: 500
+        });
+      } catch (err) {
+        document.getElementById("gallery").innerHTML = "<p style='color:red;'>Error cargando los archivos.</p>";
+        console.error(err);
+      }
+    }
+
+    cargarAdjuntos();
+  </script>
+</body>
+</html>
